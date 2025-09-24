@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mint NFT Base4you</title>
+
+<!-- Warpcast Frame Metadata -->
+<meta name="fc:frame" content="vNext" />
+<meta name="fc:frame:image" content="https://ipfs.io/ipfs/bafybeiclkfll22ttus6eerdtexo2rf2vxjts2xqxtc3dh6go5istf3evky/1.png" />
+<meta name="fc:frame:button:1" content="Mint NFT 🚀" />
+
+<style>
+  body { font-family: sans-serif; text-align: center; margin-top: 30px; }
+  button { padding: 10px 20px; font-size: 18px; cursor: pointer; }
+  img { margin: 20px 0; border: 2px solid #ccc; border-radius: 12px; }
+  p { font-size: 16px; }
+</style>
+
+</head>
+<body>
+<h1>Mint NFT Base4you</h1>
+<p>Klik tombol untuk mint NFT unik langsung ke wallet kamu. Preview NFT yang akan kamu dapat muncul di bawah.</p>
+
+<img id="nftPreview" src="" alt="NFT Preview" width="300">
+<br>
+<button id="mintBtn">Mint NFT 🚀</button>
+<p id="status"></p>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.min.js"></script>
+<script>
+const CONTRACT_ADDRESS = "0x94c403d092242fa26d3ec3bdc40a461b9cc5dfa0";
+const NFT_ABI = [
+    "function mint(uint256 id) external",
+    "function ownerOf(uint256 id) external view returns (address)"
+];
+const CID = "bafybeiclkfll22ttus6eerdtexo2rf2vxjts2xqxtc3dh6go5istf3evky";
+
+const mintBtn = document.getElementById("mintBtn");
+const status = document.getElementById("status");
+const nftPreview = document.getElementById("nftPreview");
+
+mintBtn.onclick = async () => {
+    if (!window.ethereum) {
+        alert("Install wallet Farcaster / MetaMask dulu!");
+        return;
+    }
+
+    try {
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, NFT_ABI, signer);
+
+        // cari NFT ID unik yang belum di-mint
+        let nftId = null;
+        for (let i = 1; i <= 12; i++) {
+            try {
+                const owner = await contract.ownerOf(i);
+                if (owner === "0x0000000000000000000000000000000000000000") {
+                    nftId = i;
+                    break;
+                }
+            } catch {
+                nftId = i;
+                break;
+            }
+        }
+
+        if (!nftId) {
+            status.innerText = "Semua NFT sudah di-mint!";
+            nftPreview.src = "";
+            return;
+        }
+
+        // tampilkan preview NFT
+        nftPreview.src = `https://ipfs.io/ipfs/${CID}/${nftId}.png`;
+
+        // mint NFT
+        const tx = await contract.mint(nftId);
+        status.innerText = "Transaction sent: " + tx.hash;
+        await tx.wait();
+        status.innerText = "NFT ID " + nftId + " berhasil di-mint ke wallet kamu! 🎉";
+
+    } catch (err) {
+        console.error(err);
+        status.innerText = "Mint gagal: " + err.message;
+    }
+};
+</script>
+</body>
+</html>
